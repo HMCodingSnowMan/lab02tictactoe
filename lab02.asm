@@ -2,9 +2,9 @@
 # CS64 Spring 2013 
 # Lab2
 #    names: Eric Brunnet & Hans Marasigan
-#    perm:
-#    email:
-#    date:
+#    perm: 4079877 &
+#    email: eric_brunnett@umail.ucsb.edu &
+#    date: 5/7/13
 
 #lab02 tic tac toe
 #
@@ -13,6 +13,7 @@
 #    $s2 = next move of the current player
 #    $s3 = the address of the status of the T-T-T board.
 #
+#    $s4 = number of valid turns
 ################
 # Data segment #
 ################
@@ -28,15 +29,15 @@ draw:       .asciiz "draw"
 win:        .asciiz "you win"
 lose:       .asciiz "you lose"
 
-choice:     .asciiz "Would you like to be X or O ?"
+choice:     .asciiz "Would you like to be X or O? "
 
 x:          .asciiz "X "
 o:          .asciiz "O "
 empty:      .asciiz "- " 
-selectx:    .asciiz "User X please select the next square (1-9)"
-selecto:    .asciiz "User O please select the next square (1-9)"
-badmove:    .asciiz "Invalid move! the square is already occupied! please select again(1-9)"
-
+selectx:    .asciiz "User X please select the next square (1-9): "
+selecto:    .asciiz "User O please select the next square (1-9): "
+badmove:    .asciiz "Invalid move! the square is already occupied! please select again(1-9): "
+offboard:   .asciiz "Invalid move! Please select again(1-9): "
     
 
  
@@ -47,7 +48,7 @@ badmove:    .asciiz "Invalid move! the square is already occupied! please select
     .text
 
 main:       la $s3, grid                #places a[] address in $s3
-            add $t0, $s3, $0            #places a[] address in $t0
+            add $s4, $0, $0             #num moves = 0
 
 game:       la $a0, choice              #sets choice string into the output
             li $v0, 4                   #sets the print function
@@ -56,51 +57,74 @@ game:       la $a0, choice              #sets choice string into the output
             li $v0, 5                   #sets the read function 
             syscall                     #reads the integer
             addi $s1,$v0,0              #sets variable for which one the user is
-	
-            addi $t7,$0,1
-            beq $s1,$t7, pmove
+    
+            addi $t0,$0,1               #$t0 = 1
+            bne $s1,$t0, compstart      #branch if player is O's
 
-pmove:      add $a0, $s3, $0
-            jal printBoard
-            
+pmove:      addi $t0,$0,9               #$t0 = 9
+            beq $s4,$t0, finishgame     #if 9 moves made then exit
+            add $a0, $s3, $0            #set argument for printBoard 
+            jal printBoard              #printBoard(&a[0])
+            addi $t0, $0, 1             #$t0 = 1
+            bne $t0, $s1, Oprompt       #branch to O prompt if player is 0 
             la $a0, selectx             #prompts user to make a move
             li $v0, 4                   #sets the print
             syscall                     #prints
+            j check
 
-            add $s4,$0,$0	#sets counter to 0
-            addi $t7,$0,9
-            check:	beq $s4,$t7, finishgame
-            li $v0, 5 #sets the read
-            syscall	#reads
-            add $t3,$v0,$0	#user choice
+Oprompt:    la $a0, selecto             #prompts user to make a move
+            li $v0, 4                   #sets the print
+            syscall                     #prints
 
-            sll $t3,$t3,2	#sets offset (muti 4)
-            add $t2,$t0,$t3	#adds offset to address
-            lw $t4,0($t2)	#loads word A[i] at address
+check:      li $v0, 5                   #sets the read
+            syscall                     #reads
+            addi $t0,$v0, -9            #$t0 = user choice - 9
+            bgtz $t0, invalid           #branch if user choice is > 9
+            addi $t0,$v0, -1            #$t0 = index value of user choice
+            bltz $t0, invalid           #branch if user choice is < 1
 
-            bne $t4,0, illegal	#checks if A[i] is empty
-            addi $t4,$0,1	#sets A[i] to X
-            sw $t4,0($t2)	#stores move onto board
+            sll $t0,$t0,2               #sets offset (muti 4)
+            add $t0,$s3,$t0             #adds offset to base address
+            
+            lw $t1,0($t0)               #loads word A[i] at address
+
+            bne $t1, $0, illegal        #checks if A[i] is empty
+            add $t1, $0, $s1            #sets A[i] to player's symbol
+            sw $t1,0($t0)               #stores move onto board
+            addi $s4, $s4, 1            #increment number of moves
+            
+            addi $t0,$0,9               #$t0 = 9
+            beq $s4,$t0, finishgame     #if 9 moves made then exit
 
             ### end player move ###
 
-            addi $t5,$t0,0	#setting t5 to a[0]
-compcheck:  lw $t4,0($t5)	#load a[i]
-            beq $t4,0, compmove	#check if empty
-            addi $t5,$t5,4	#if not increment
-            j compcheck	#jump to compcheck
+compstart:  add $s2,$s3,$0              #setting $s2 to a[0]
+compcheck:  lw $t0,0($s2)               #load a[i]
+            beq $t0, $0, compmove       #check if empty
+            addi $s2,$s2,4              #increment position
+            j compcheck                 #jump to compcheck
 
-compmove:   addi $t6,$0,2	#empty slot found, set to O
-            sw $t6,0($t5)	#save to array
+compmove:   addi $t0, $0, 1             #set $t0 to X
+            bne $t0, $s1, compX         #if player is not X comp is X
+            addi $t0, $0, 2             #empty slot found, set to O
+            sw $t0, 0($s2)              #save to array
+            addi $s4, $s4, 1            #increment num moves
+            j pmove                     #jump to player move
+            
+compX:      addi $t0, $0, 1             #set $t0 to O
+            sw $t0, 0($s2)              #save move
+            addi $s4, $s4, 1            #increment num moves
+            j pmove                     #jump to player move
 
-            j pmove
-
-
-illegal:    la $a0, badmove
-            li $v0, 4
-            syscall
-
-            j check            
+invalid:    la $a0, offboard            #set out put to offboard            
+            li $v0, 4                   #set syscall to print
+            syscall                     #print
+            j check                     #jump to check
+            
+illegal:    la $a0, badmove             #set out put to badmove            
+            li $v0, 4                   #set syscall to print
+            syscall                     #print
+            j check                     #jump to check            
     
 printBoard: addi $t0, $s3, 36           #get address of "a[9]" (first element out of bounds)
             beq $a0, $t0, return        #a[9] -> return
@@ -177,8 +201,10 @@ printNL:    addi $sp, $sp, -4           #make room on stack
             li $v0, 4                   #set syscall for print
             syscall                     #print 'X'
             lw $a0, 0($sp)              #restore argument
-            addi $sp, $sp, 4            #restore stack                    #print 'X'
+            addi $sp, $sp, 4            #restore stack
             j next
             
-finishgame: li $v0,10                   #set syscall for program termination
+finishgame: add $a0, $s3, $0
+            jal printBoard
+            li $v0,10                   #set syscall for program termination
             syscall                     #terminate
