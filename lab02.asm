@@ -52,6 +52,17 @@ main:       la $s3, grid                #places a[] address in $s3
             add $a0, $s3, $0
             jal printBoard
             j finishgame
+
+game:       la $a0, choice              #sets choice string into the output
+            li $v0, 4                   #sets the print function
+            syscall                     #prints the choice string
+
+            li $v0, 5                   #sets the read function 
+            syscall                     #reads the integer
+            addi $s1,$v0,0              #sets variable for which one the user is
+	
+            addi $t7,$0,1
+            beq $s1,$t7, pmove
             
     
 printBoard: addi $t0, $s3, 36           #get address of "a[9]" (first element out of bounds)
