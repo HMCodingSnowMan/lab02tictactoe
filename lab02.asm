@@ -63,7 +63,45 @@ game:       la $a0, choice              #sets choice string into the output
 	
             addi $t7,$0,1
             beq $s1,$t7, pmove
-            
+
+pmove:      la $a0, selectx             #prompts user to make a move
+            li $v0, 4                   #sets the print
+            syscall                     #prints
+
+            add $s4,$0,$0	#sets counter to 0
+            addi $t7,$0,9
+            check:	beq $s4,$t7, finishgame
+            li $v0, 5 #sets the read
+            syscall	#reads
+            add $t3,$v0,$0	#user choice
+
+            sll $t3,$t3,2	#sets offset (muti 4)
+            add $t2,$t0,$t3	#adds offset to address
+            lw $t4,0($t2)	#loads word A[i] at address
+
+            bne $t4,0, illegal	#checks if A[i] is empty
+            addi $t4,$0,1	#sets A[i] to X
+            sw $t4,0($t2)	#stores move onto board
+
+            ### end player move ###
+
+            addi $t5,$t0,0	#setting t5 to a[0]
+compcheck:  lw $t4,0($t5)	#load a[i]
+            beq $t4,0, compmove	#check if empty
+            addi $t5,$t5,4	#if not increment
+            j compcheck	#jump to compcheck
+
+compmove:   addi $t6,$0,2	#empty slot found, set to O
+            sw $t6,0($t5)	#save to array
+
+            j pmove
+
+
+illegal:    la $a0, badmove
+            li $v0, 4
+            syscall
+
+            j check            
     
 printBoard: addi $t0, $s3, 36           #get address of "a[9]" (first element out of bounds)
             beq $a0, $t0, return        #a[9] -> return
