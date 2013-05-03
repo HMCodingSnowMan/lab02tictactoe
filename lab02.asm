@@ -19,7 +19,7 @@
 
 
     .data
-grid:       .word 0 1 2 1 2 0 2 0 1 0   #array of the spaces of the board.
+grid:       .word 0 0 0 0 0 0 0 0 0 0   #array of the spaces of the board.
 
 count:      .word 9                     #number of elements in the array
 endl:       .asciiz "\n" 
