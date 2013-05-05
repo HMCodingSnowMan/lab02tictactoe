@@ -2,8 +2,8 @@
 # CS64 Spring 2013 
 # Lab2
 #    names: Eric Brunnet & Hans Marasigan
-#    perm: 4079877 &
-#    email: eric_brunnett@umail.ucsb.edu &
+#    perm: 4079877 & 5862230
+#    email: eric_brunnett@umail.ucsb.edu & hansmarasigan@umail.ucsb.edu
 #    date: 5/7/13
 
 #lab02 tic tac toe
