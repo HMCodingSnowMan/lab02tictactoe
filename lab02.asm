@@ -14,6 +14,7 @@
 #    $s3 = the address of the status of the T-T-T board.
 #
 #    $s4 = number of valid turns
+#    $s5 = which one is the comp
 ################
 # Data segment #
 ################
@@ -25,9 +26,9 @@ grid:       .word 0 0 0 0 0 0 0 0 0 0   #array of the spaces of the board.
 count:      .word 9                     #number of elements in the array
 endl:       .asciiz "\n" 
 
-draw:       .asciiz "draw"
-win:        .asciiz "you win"
-lose:       .asciiz "you lose"
+draw:       .asciiz "DRAW!\n"
+win:        .asciiz "You Win!\n"
+lose:       .asciiz "You Lose!\n"
 
 choice:     .asciiz "Would you like to be X or O? "
 
@@ -38,7 +39,7 @@ selectx:    .asciiz "User X please select the next square (1-9): "
 selecto:    .asciiz "User O please select the next square (1-9): "
 badmove:    .asciiz "Invalid move! the square is already occupied! please select again(1-9): "
 offboard:   .asciiz "Invalid move! Please select again(1-9): "
-    
+newgame:    .asciiz "Would you like to play again (y/n)? "    
 
  
 ################
@@ -54,14 +55,23 @@ game:       la $a0, choice              #sets choice string into the output
             li $v0, 4                   #sets the print function
             syscall                     #prints the choice string
 
-            li $v0, 5                   #sets the read function 
-            syscall                     #reads the integer
-            addi $s1,$v0,0              #sets variable for which one the user is
-    
-            addi $t0,$0,1               #$t0 = 1
-            bne $s1,$t0, compstart      #branch if player is O's
+            li $v0, 12                  #sets the read function 
+            syscall                     #reads the character
+    		add $t1, $0, $v0            #store answer
+			la $a0, endl                #sets endl string into the output
+            li $v0, 4                   #sets the print function
+            syscall                     #prints new line
+			addi $t0, $0, 'o'           #$t0 = 'o'
+			beq $t1, $t0, compstart     #branch if user selected o's
+			addi $t0, $0, 'O'           #$t0 = 'O'
+			beq $t1, $t0, compstart     #branch if user selected O's
+			
+			addi $s1, $0, 1             #set $s1, user choice, to 1, X's
+			addi $s5, $0, 2             #set $s1, comp choice, to 2, O's
 
-pmove:      addi $t0,$0,9               #$t0 = 9
+
+pmove:      add $s0, $s1, $0            #set $s0 to X's or O's turn 
+            addi $t0,$0,9               #$t0 = 9
             beq $s4,$t0, finishgame     #if 9 moves made then exit
             add $a0, $s3, $0            #set argument for printBoard 
             jal printBoard              #printBoard(&a[0])
@@ -95,10 +105,14 @@ check:      li $v0, 5                   #sets the read
             
             addi $t0,$0,9               #$t0 = 9
             beq $s4,$t0, finishgame     #if 9 moves made then exit
+			j compbegin
 
             ### end player move ###
 
-compstart:  add $s2,$s3,$0              #setting $s2 to a[0]
+compstart:  addi $s1, $0, 2             #set $s1, user choice, to 2, O's
+            addi $s5, $0, 1             #set $s1, comp choice, to 1, X's
+compbegin:  add $s0, $s5, $0            #set whose turn it is
+            add $s2,$s3,$0              #setting $s2 to a[0]
 compcheck:  lw $t0,0($s2)               #load a[i]
             beq $t0, $0, compmove       #check if empty
             addi $s2,$s2,4              #increment position
@@ -204,7 +218,41 @@ printNL:    addi $sp, $sp, -4           #make room on stack
             addi $sp, $sp, 4            #restore stack
             j next
             
+initialize:	add $s4, $0, $0
+            add $t0, $0, $0             #re-initialize array to empty
+            sw $t0, 0($s3)
+            sw $t0, 4($s3)
+            sw $t0, 8($s3)
+            sw $t0, 12($s3)
+            sw $t0, 16($s3)
+            sw $t0, 20($s3)
+            sw $t0, 24($s3)
+            sw $t0, 28($s3)
+            sw $t0, 32($s3)
+
+            j game			
+			
 finishgame: add $a0, $s3, $0
             jal printBoard
+			
+			la $a0, draw
+			li $v0, 4
+			syscall
+			
+			la $a0, newgame
+			li $v0, 4
+			syscall
+			
+			li $v0, 12
+			syscall
+			add $t1, $0, $v0            #store answer
+			la $a0, endl                #sets endl string into the output
+            li $v0, 4                   #sets the print function
+            syscall                     #prints new line
+			addi $t0, $0, 'y'
+			beq $t1, $t0, initialize
+			addi $t0, $0, 'Y'
+			beq $t1, $t0, initialize
+			
             li $v0,10                   #set syscall for program termination
             syscall                     #terminate
